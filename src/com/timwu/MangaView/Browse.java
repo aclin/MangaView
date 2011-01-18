@@ -11,12 +11,12 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.AdapterView.OnItemClickListener;
 
-public class Browse extends ListActivity implements OnItemClickListener, FilenameFilter {
+
+public class Browse extends ListActivity implements FilenameFilter {
 
 	private File file;
 	
@@ -24,7 +24,6 @@ public class Browse extends ListActivity implements OnItemClickListener, Filenam
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.browse);
-		getListView().setOnItemClickListener(this);
 	}
 	
 	@Override
@@ -68,7 +67,7 @@ public class Browse extends ListActivity implements OnItemClickListener, Filenam
 	}
 
 	@Override
-	public void onItemClick(AdapterView<?> listView, View itemView, int position, long id) {
+	public void onListItemClick(ListView listView, View itemView, int position, long id) {
 		String filename = (String) listView.getAdapter().getItem(position);
 		File f = new File(file, filename);
 		if (MangaVolume.validMangaFile(f)) {
