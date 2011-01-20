@@ -35,10 +35,6 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 		private int xOff;
 		private float xOnClick;
 		private float yOnClick;
-		private final Paint mPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
-	    private final Rect mRectSrc = new Rect();
-	    private final Rect mRectDst = new Rect();
-		
 		
 		@Override
 		public void run() {
@@ -59,6 +55,10 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 			Canvas canvas = null;
 			int adjXOnClick;
 			int adjYOnClick;
+			
+			Paint mPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+		    Rect mRectSrc = new Rect();
+		    Rect mRectDst = new Rect();
 			
 			try {
 				canvas = getHolder().lockCanvas();
@@ -85,15 +85,49 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 						adjXOnClick = ((int) xOnClick) + xOff;
 						adjYOnClick = ((int) yOnClick) - (getHeight() - center.getHeight()) / 2;
 						
-						mRectSrc.right = adjXOnClick;
-						mRectSrc.bottom = (int) adjYOnClick;
-						mRectSrc.left = (int) (adjXOnClick-30<0 ? 0 : adjXOnClick-30);
-						mRectSrc.top = (int) (adjYOnClick-30<0 ? 0 : adjYOnClick-30);
+						if (adjXOnClick + 15 > getWidth()) { // source rectangle is hitting the right edge
+							mRectSrc.right = getWidth();
+							mRectSrc.left = getWidth() - 30;
+						} else if (adjXOnClick - 15 < 0) { // source rectangle is hitting the left edge
+							mRectSrc.right = 30;
+							mRectSrc.left = 0;
+						} else { // source rectangle can be fully drawn from left to right
+							mRectSrc.right = adjXOnClick + 15;
+							mRectSrc.left = adjXOnClick - 15;
+						}
 						
-						mRectDst.right = (int) xOnClick;
-						mRectDst.bottom = (int) yOnClick;
-						mRectDst.left = (int) (xOnClick-90<0 ? 0 : xOnClick-90);
-						mRectDst.top = (int) (yOnClick-90<0 ? 0 : yOnClick-90);
+						if (adjYOnClick + 15 > getHeight()) { // source rectangle is hitting the bottom edge
+							mRectSrc.bottom = getHeight();
+							mRectSrc.top = getHeight() - 30;
+						} else if (adjYOnClick - 15 < 0) { // source rectangle is hitting the top edge
+							mRectSrc.bottom = 30;
+							mRectSrc.top = 0;
+						} else { // source rectangle can be fully drawn from top to bottom
+							mRectSrc.bottom = adjYOnClick + 15;
+							mRectSrc.top = adjYOnClick - 15;
+						}
+						
+						if (xOnClick + 45 > getWidth()) { // destination rectangle is hitting the right edge
+							mRectDst.right = getWidth();
+							mRectDst.left = getWidth() - 90;
+						} else if (xOnClick - 45 < 0) { // destination rectangle is hitting the left edge
+							mRectDst.right = 90;
+							mRectDst.left = 0;
+						} else { // destination rectangle can be fully drawn from left to right
+							mRectDst.right = (int) (xOnClick + 45);
+							mRectDst.left = (int) (xOnClick - 45);
+						}
+						
+						if (yOnClick + 45 > getHeight()) { // destination rectangle is hitting the bottom edge
+							mRectDst.bottom = getHeight();
+							mRectDst.top = getHeight() - 90;
+						} else if (yOnClick - 45 < 0) { // destination rectangle is hitting the top edge
+							mRectDst.bottom = 90;
+							mRectDst.top = 0;
+						} else { // destination rectangle can be fully drawn from top to bottom
+							mRectDst.bottom = (int) (yOnClick + 45);
+							mRectDst.top = (int) (yOnClick - 45);
+						}
 						
 						canvas.drawBitmap(center, mRectSrc, mRectDst, mPaint);
 					}
@@ -173,14 +207,6 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 		
 		private synchronized void setMagnify(boolean newMagnify) {
 			magnify = newMagnify;
-		}
-		
-		private synchronized void setX(float x) {
-			xOnClick = x;
-		}
-		
-		private synchronized void setY(float y) {
-			yOnClick = y;
 		}
 		
 		private synchronized void setCoords(float x, float y) {
