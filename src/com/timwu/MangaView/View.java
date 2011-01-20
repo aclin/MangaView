@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -28,8 +30,15 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 		private Boolean redraw = false;
 		private boolean touchDown = false;
 		private boolean pageFetch = false;
+		private boolean magnify = false;
 		private Bitmap left, right, center;
 		private int xOff;
+		private float xOnClick;
+		private float yOnClick;
+		private final Paint mPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+	    private final Rect mRectSrc = new Rect();
+	    private final Rect mRectDst = new Rect();
+		
 		
 		@Override
 		public void run() {
@@ -38,7 +47,7 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 					processPages();
 					processXOff();
 					doAnimation();
-					if (redraw) {
+					if (redraw || magnify) {
 						doDraw();
 						redraw = false;
 					}
@@ -48,22 +57,45 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 		
 		private void doDraw() {
 			Canvas canvas = null;
+			int adjXOnClick;
+			int adjYOnClick;
+			
 			try {
 				canvas = getHolder().lockCanvas();
 				canvas.clipRect(0, 0, getWidth(), getHeight());
 				canvas.drawColor(Color.BLACK);
 				synchronized(getHolder()) {
-					if (left != null) {
-						canvas.drawBitmap(left, xOff - getWidth(), 
-								(getHeight() - left.getHeight()) / 2, null);
-					}
-					if (center != null) {
-						canvas.drawBitmap(center, xOff, 
+					if (!magnify) {
+						if (left != null) {
+							canvas.drawBitmap(left, xOff - getWidth(), 
+									(getHeight() - left.getHeight()) / 2, null);
+						}
+						if (center != null) {
+							canvas.drawBitmap(center, xOff, 
+									(getHeight() - center.getHeight()) / 2, null);
+						}
+						if (right != null) {
+							canvas.drawBitmap(right, xOff + getWidth(), 
+									(getHeight() - right.getHeight()) / 2, null);
+						}
+					} else {
+						canvas.drawBitmap(center, xOff,
 								(getHeight() - center.getHeight()) / 2, null);
-					}
-					if (right != null) {
-						canvas.drawBitmap(right, xOff + getWidth(), 
-								(getHeight() - right.getHeight()) / 2, null);
+						
+						adjXOnClick = ((int) xOnClick) + xOff;
+						adjYOnClick = ((int) yOnClick) - (getHeight() - center.getHeight()) / 2;
+						
+						mRectSrc.right = adjXOnClick;
+						mRectSrc.bottom = (int) adjYOnClick;
+						mRectSrc.left = (int) (adjXOnClick-30<0 ? 0 : adjXOnClick-30);
+						mRectSrc.top = (int) (adjYOnClick-30<0 ? 0 : adjYOnClick-30);
+						
+						mRectDst.right = (int) xOnClick;
+						mRectDst.bottom = (int) yOnClick;
+						mRectDst.left = (int) (xOnClick-90<0 ? 0 : xOnClick-90);
+						mRectDst.top = (int) (yOnClick-90<0 ? 0 : yOnClick-90);
+						
+						canvas.drawBitmap(center, mRectSrc, mRectDst, mPaint);
 					}
 				}
 			} finally {
@@ -139,24 +171,51 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 			touchDown = newTouchDown;
 		}
 		
+		private synchronized void setMagnify(boolean newMagnify) {
+			magnify = newMagnify;
+		}
+		
+		private synchronized void setX(float x) {
+			xOnClick = x;
+		}
+		
+		private synchronized void setY(float y) {
+			yOnClick = y;
+		}
+		
+		private synchronized void setCoords(float x, float y) {
+			xOnClick = x;
+			yOnClick = y;
+		}
+		
 		private synchronized void resetXOff() {
 			xOff = 0;
 			redraw = true;
 		}
 		
 		private synchronized void scroll(int dx, int dy) {
-			xOff -= dx;
-			redraw = true;
+			if (!magnify) {
+				xOff -= dx;
+				redraw = true;
+			} else {
+				xOnClick -= dx;
+				yOnClick -= dy;
+			}
 		}
 		
 		private synchronized void requestPageFetch() {
 			pageFetch = true;
+		}
+		
+		private synchronized boolean isMagnifierOn() {
+			return magnify;
 		}
 	}
 	
 	private class GestureListener extends SimpleOnGestureListener {
 		@Override
 		public boolean onDown(MotionEvent e) {
+			drawingThread.setCoords(e.getX(), e.getY());
 			drawingThread.setTouchDown(true);
 			drawingThread.cancelAnimation();
 			return true;
@@ -166,6 +225,17 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 		public boolean onScroll(MotionEvent e1, MotionEvent e2,
 				float distanceX, float distanceY) {
 			drawingThread.scroll((int) distanceX, (int) distanceY);
+			return true;
+		}
+		
+		@Override
+		public boolean onSingleTapConfirmed(MotionEvent e) {
+			if (!drawingThread.isMagnifierOn()) {
+				drawingThread.setMagnify(true);
+			} else {
+				drawingThread.setMagnify(false);
+				drawingThread.requestRedraw();
+			}
 			return true;
 		}
 	}
