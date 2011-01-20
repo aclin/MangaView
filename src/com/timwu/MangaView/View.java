@@ -35,6 +35,9 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 		private int xOff;
 		private float xOnClick;
 		private float yOnClick;
+		private Rect magnifierRect = new Rect();
+		private float magX;
+		private float magY;
 		
 		@Override
 		public void run() {
@@ -43,7 +46,7 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 					processPages();
 					processXOff();
 					doAnimation();
-					if (redraw || magnify) {
+					if (redraw) {
 						doDraw();
 						redraw = false;
 					}
@@ -58,78 +61,75 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 			
 			Paint mPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
 		    Rect mRectSrc = new Rect();
-		    Rect mRectDst = new Rect();
 			
 			try {
 				canvas = getHolder().lockCanvas();
 				canvas.clipRect(0, 0, getWidth(), getHeight());
 				canvas.drawColor(Color.BLACK);
 				synchronized(getHolder()) {
-					if (!magnify) {
-						if (left != null) {
-							canvas.drawBitmap(left, xOff - getWidth(), 
-									(getHeight() - left.getHeight()) / 2, null);
-						}
-						if (center != null) {
-							canvas.drawBitmap(center, xOff, 
-									(getHeight() - center.getHeight()) / 2, null);
-						}
-						if (right != null) {
-							canvas.drawBitmap(right, xOff + getWidth(), 
-									(getHeight() - right.getHeight()) / 2, null);
-						}
-					} else {
-						canvas.drawBitmap(center, xOff,
+					
+					if (left != null) {
+						canvas.drawBitmap(left, xOff - getWidth(), 
+								(getHeight() - left.getHeight()) / 2, null);
+					}
+					if (center != null) {
+						canvas.drawBitmap(center, xOff, 
 								(getHeight() - center.getHeight()) / 2, null);
+					}
+					if (right != null) {
+						canvas.drawBitmap(right, xOff + getWidth(), 
+								(getHeight() - right.getHeight()) / 2, null);
+					}
+					
+					if (magnify) {
+						adjXOnClick = ((int) magX) - xOff;
+						adjYOnClick = ((int) magY) - (getHeight() - center.getHeight()) / 2;
 						
-						adjXOnClick = ((int) xOnClick) + xOff;
-						adjYOnClick = ((int) yOnClick) - (getHeight() - center.getHeight()) / 2;
-						
-						if (adjXOnClick + 15 > getWidth()) { // source rectangle is hitting the right edge
+						if (adjXOnClick + 15 > getWidth()) {	// source rectangle is hitting the right edge
 							mRectSrc.right = getWidth();
 							mRectSrc.left = getWidth() - 30;
-						} else if (adjXOnClick - 15 < 0) { // source rectangle is hitting the left edge
+						} else if (adjXOnClick - 15 < 0) {		// source rectangle is hitting the left edge
 							mRectSrc.right = 30;
 							mRectSrc.left = 0;
-						} else { // source rectangle can be fully drawn from left to right
+						} else {								// source rectangle can be fully drawn from left to right
 							mRectSrc.right = adjXOnClick + 15;
 							mRectSrc.left = adjXOnClick - 15;
 						}
 						
-						if (adjYOnClick + 15 > getHeight()) { // source rectangle is hitting the bottom edge
+						if (adjYOnClick + 15 > getHeight()) {	// source rectangle is hitting the bottom edge
 							mRectSrc.bottom = getHeight();
 							mRectSrc.top = getHeight() - 30;
-						} else if (adjYOnClick - 15 < 0) { // source rectangle is hitting the top edge
+						} else if (adjYOnClick - 15 < 0) {		// source rectangle is hitting the top edge
 							mRectSrc.bottom = 30;
 							mRectSrc.top = 0;
-						} else { // source rectangle can be fully drawn from top to bottom
+						} else {								// source rectangle can be fully drawn from top to bottom
 							mRectSrc.bottom = adjYOnClick + 15;
 							mRectSrc.top = adjYOnClick - 15;
 						}
 						
-						if (xOnClick + 45 > getWidth()) { // destination rectangle is hitting the right edge
-							mRectDst.right = getWidth();
-							mRectDst.left = getWidth() - 90;
-						} else if (xOnClick - 45 < 0) { // destination rectangle is hitting the left edge
-							mRectDst.right = 90;
-							mRectDst.left = 0;
-						} else { // destination rectangle can be fully drawn from left to right
-							mRectDst.right = (int) (xOnClick + 45);
-							mRectDst.left = (int) (xOnClick - 45);
+						if (magX + 45 > getWidth()) {				// destination rectangle is hitting the right edge
+							magnifierRect.right = getWidth();
+							magnifierRect.left = getWidth() - 90;
+						} else if (magX - 45 < 0) {					// destination rectangle is hitting the left edge
+							magnifierRect.right = 90;
+							magnifierRect.left = 0;
+						} else {									// destination rectangle can be fully drawn from left to right
+							magnifierRect.right = (int) (magX + 45);
+							magnifierRect.left = (int) (magX - 45);
 						}
 						
-						if (yOnClick + 45 > getHeight()) { // destination rectangle is hitting the bottom edge
-							mRectDst.bottom = getHeight();
-							mRectDst.top = getHeight() - 90;
-						} else if (yOnClick - 45 < 0) { // destination rectangle is hitting the top edge
-							mRectDst.bottom = 90;
-							mRectDst.top = 0;
-						} else { // destination rectangle can be fully drawn from top to bottom
-							mRectDst.bottom = (int) (yOnClick + 45);
-							mRectDst.top = (int) (yOnClick - 45);
+						if (magY + 45 > getHeight()) {				// destination rectangle is hitting the bottom edge
+							magnifierRect.bottom = getHeight();
+							magnifierRect.top = getHeight() - 90;
+						} else if (magY - 45 < 0) {					// destination rectangle is hitting the top edge
+							magnifierRect.bottom = 90;
+							magnifierRect.top = 0;
+						} else {									// destination rectangle can be fully drawn from top to bottom
+							magnifierRect.bottom = (int) (magY + 45);
+							magnifierRect.top = (int) (magY - 45);
 						}
 						
-						canvas.drawBitmap(center, mRectSrc, mRectDst, mPaint);
+						canvas.drawBitmap(center, mRectSrc, magnifierRect, mPaint);
 					}
 				}
 			} finally {
@@ -205,8 +205,14 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 			touchDown = newTouchDown;
 		}
 		
-		private synchronized void setMagnify(boolean newMagnify) {
-			magnify = newMagnify;
+		private synchronized void setMagnifierOn() {
+			magnify = true;
+			magX = xOnClick;
+			magY = yOnClick;
+		}
+		
+		private synchronized void setMagnifierOff() {
+			magnify = false;
 		}
 		
 		private synchronized void setCoords(float x, float y) {
@@ -220,13 +226,18 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 		}
 		
 		private synchronized void scroll(int dx, int dy) {
-			if (!magnify) {
-				xOff -= dx;
-				redraw = true;
-			} else {
+			if (magnify &&
+				(xOnClick >= magnifierRect.left && xOnClick <= magnifierRect.right) &&
+				(yOnClick >= magnifierRect.top && yOnClick <= magnifierRect.bottom)) {
 				xOnClick -= dx;
 				yOnClick -= dy;
+				
+				magX = xOnClick;
+				magY = yOnClick;
+			} else {
+				xOff -= dx;
 			}
+			redraw = true;
 		}
 		
 		private synchronized void requestPageFetch() {
@@ -241,8 +252,8 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 	private class GestureListener extends SimpleOnGestureListener {
 		@Override
 		public boolean onDown(MotionEvent e) {
-			drawingThread.setCoords(e.getX(), e.getY());
 			drawingThread.setTouchDown(true);
+			drawingThread.setCoords(e.getX(), e.getY());
 			drawingThread.cancelAnimation();
 			return true;
 		}
@@ -256,10 +267,12 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 		
 		@Override
 		public boolean onSingleTapConfirmed(MotionEvent e) {
+			// Toggles magnifier
 			if (!drawingThread.isMagnifierOn()) {
-				drawingThread.setMagnify(true);
+				drawingThread.setMagnifierOn();
+				drawingThread.requestRedraw();
 			} else {
-				drawingThread.setMagnify(false);
+				drawingThread.setMagnifierOff();
 				drawingThread.requestRedraw();
 			}
 			return true;
