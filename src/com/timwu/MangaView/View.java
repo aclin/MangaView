@@ -56,8 +56,8 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 		
 		private void doDraw() {
 			Canvas canvas = null;
-			int adjXOnClick;
-			int adjYOnClick;
+			int adjMagX;
+			int adjMagY;
 			
 			Paint mPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
 		    Rect mRectSrc = new Rect();
@@ -82,40 +82,40 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 					}
 					
 					if (magnify) {
-						adjXOnClick = ((int) magX) - xOff;
-						adjYOnClick = ((int) magY) - (getHeight() - center.getHeight()) / 2;
+						adjMagX = ((int) magX);
+						adjMagY = ((int) magY) - (getHeight() - center.getHeight()) / 2;
 						
-						if (adjXOnClick + 15 > getWidth()) {	// source rectangle is hitting the right edge
+						if (adjMagX + 15 > getWidth()) {	// source rectangle is hitting the right edge
 							mRectSrc.right = getWidth();
 							mRectSrc.left = getWidth() - 30;
-						} else if (adjXOnClick - 15 < 0) {		// source rectangle is hitting the left edge
+						} else if (adjMagX - 15 < 0) {		// source rectangle is hitting the left edge
 							mRectSrc.right = 30;
 							mRectSrc.left = 0;
 						} else {								// source rectangle can be fully drawn from left to right
-							mRectSrc.right = adjXOnClick + 15;
-							mRectSrc.left = adjXOnClick - 15;
+							mRectSrc.right = adjMagX + 15;
+							mRectSrc.left = adjMagX - 15;
 						}
 						
-						if (adjYOnClick + 15 > getHeight()) {	// source rectangle is hitting the bottom edge
+						if (adjMagY + 15 > getHeight()) {	// source rectangle is hitting the bottom edge
 							mRectSrc.bottom = getHeight();
 							mRectSrc.top = getHeight() - 30;
-						} else if (adjYOnClick - 15 < 0) {		// source rectangle is hitting the top edge
+						} else if (adjMagY - 15 < 0) {		// source rectangle is hitting the top edge
 							mRectSrc.bottom = 30;
 							mRectSrc.top = 0;
 						} else {								// source rectangle can be fully drawn from top to bottom
-							mRectSrc.bottom = adjYOnClick + 15;
-							mRectSrc.top = adjYOnClick - 15;
+							mRectSrc.bottom = adjMagY + 15;
+							mRectSrc.top = adjMagY - 15;
 						}
 						
 						if (magX + 45 > getWidth()) {				// destination rectangle is hitting the right edge
-							magnifierRect.right = getWidth();
-							magnifierRect.left = getWidth() - 90;
+							magnifierRect.right = getWidth() + xOff;
+							magnifierRect.left = getWidth() - 90 + xOff;
 						} else if (magX - 45 < 0) {					// destination rectangle is hitting the left edge
-							magnifierRect.right = 90;
-							magnifierRect.left = 0;
+							magnifierRect.right = 90 + xOff;
+							magnifierRect.left = 0 + xOff;
 						} else {									// destination rectangle can be fully drawn from left to right
-							magnifierRect.right = (int) (magX + 45);
-							magnifierRect.left = (int) (magX - 45);
+							magnifierRect.right = (int) (magX + 45) + xOff;
+							magnifierRect.left = (int) (magX - 45) + xOff;
 						}
 						
 						if (magY + 45 > getHeight()) {				// destination rectangle is hitting the bottom edge
@@ -181,6 +181,7 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 				center = left;
 				left = getScaledPage(page + 1);
 				xOff -= getWidth();
+				setMagnifierOff();
 			} else if (xOff <= -getWidth()) {
 				Log.i(TAG, "shifting page right.");
 				page--;
@@ -188,6 +189,7 @@ public class View extends SurfaceView implements SurfaceHolder.Callback {
 				center = right;
 				right = getScaledPage(page - 1);
 				xOff += getWidth();
+				setMagnifierOff();
 			}
 		}
 		
